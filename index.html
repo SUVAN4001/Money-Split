@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Money Split</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f5fa;--card:#fff;--ink:#12203a;--mute:#5d6b86;--line:#dbe2ee;--get:#0b8a66;--owe:#d0453b;--acc:#12203a;--accink:#fff;--slip:#fff8e6;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1626;--card:#16213a;--ink:#e8eefb;--mute:#93a2c2;--line:#2a3858;--get:#3fd5a6;--owe:#ff7b70;--acc:#e8eefb;--accink:#0e1626;--slip:#1d2a47;color-scheme:dark}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 Figtree,system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+h1,h2{font-family:"Bricolage Grotesque",Figtree,sans-serif;margin:0}
+h1{font-size:2.2rem;font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.2rem;font-weight:600;margin-bottom:10px}
+.sub{color:var(--mute);margin:2px 0 18px}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+input,select,button{font:inherit;color:inherit}
+input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--get);outline-offset:2px}
+.row{display:flex;gap:8px;margin-bottom:8px}.row>*{flex:1}
+button{cursor:pointer;border:1px solid var(--line);background:transparent;border-radius:10px;padding:9px 14px;font-weight:500}
+button.p{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:700}
+button.x{padding:2px 8px;color:var(--mute)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:4px 6px 4px 12px;background:var(--bg)}
+.chip small{color:var(--mute)}
+.who{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.who label{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:99px;padding:4px 12px;cursor:pointer}
+.who input{width:auto}
+.who .sa{width:90px;padding:4px 8px;display:none}.who.ex .sa{display:inline-block}
+.li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line)}
+.li:first-of-type{border-top:0}
+.li small,.mute{color:var(--mute)}
+.amt{font-weight:700;font-variant-numeric:tabular-nums}
+.get{color:var(--get)}.owe{color:var(--owe)}
+.slip{background:var(--slip);border:1px dashed var(--mute);border-radius:12px;padding:12px 14px;margin-bottom:10px;position:relative}
+.slip .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.slip .big{font:800 1.5rem "Bricolage Grotesque",Figtree,sans-serif}
+.slip .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.slip a{text-decoration:none}
+a.btn{display:inline-block;border:1px solid var(--acc);background:var(--acc);color:var(--accink);border-radius:10px;padding:9px 14px;font-weight:700}
+.empty{color:var(--mute);padding:6px 0}
+.err{color:var(--owe);min-height:1.3em;margin:0 0 6px;font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+<h1>Money Split</h1>
+<p class="sub">Add your group, add the bills, and see who should pay whom.</p>
+
+<section>
+<h2>Who is in the group?</h2>
+<div class="row"><input id="pn" placeholder="Name" aria-label="Friend name" maxlength="30"><input id="pu" placeholder="UPI ID (optional)" aria-label="UPI ID" maxlength="60"><button class="p" id="addP" style="flex:0 0 auto">Add person</button></div>
+<div class="chips" id="people"></div>
+<p class="mute" style="margin:0;font-size:.9rem">To add or change a UPI ID, type the same name again with the new UPI ID.</p>
+</section>
+
+<section>
+<h2>Add a bill</h2>
+<p class="err" id="err" role="alert"></p>
+<div class="row"><input id="ed" placeholder="What was it for? (Dinner, cab…)" aria-label="Description" maxlength="50"><input id="ea" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Amount ₹" aria-label="Amount in rupees"></div>
+<select id="ep" aria-label="Paid by"></select>
+<select id="mode" aria-label="How to split" style="margin-top:8px"><option value="eq">Split equally</option><option value="ex">Split by exact amounts</option></select>
+<p class="mute" style="margin:8px 0 0">Who shared this bill?</p>
+<div class="who" id="split" aria-label="Who shared this bill"></div>
+<button class="p" id="addE">Save bill</button>
+</section>
+
+<section>
+<h2>Who gets money, who pays</h2>
+<p class="mute" id="tot" style="margin:0 0 6px"></p>
+<div id="bal"></div>
+</section>
+
+<section>
+<h2>Pay back</h2>
+<div id="settle"></div>
+<div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button id="copy">Copy summary</button><a class="btn" id="wa" target="_blank" rel="noopener" style="display:none">Share on WhatsApp</a></div>
+<p class="mute" id="note" style="margin:8px 0 0"></p>
+</section>
+
+<section>
+<h2>History</h2>
+<div id="hist"></div>
+<button id="reset" style="margin-top:10px">Clear everything</button>
+</section>
+</main>
+
+<script>
+(function(){
+var KEY="chalo-split-v1",S={people:[],items:[]};
+try{var raw=localStorage.getItem(KEY);if(raw){var d=JSON.parse(raw);if(d&&d.people&&d.items)S=d}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var $=function(i){return document.getElementById(i)};
+var APPS=[["Google Pay","gpay://upi/pay?"],["PhonePe","phonepe://pay?"],["Paytm","paytmmp://pay?"],["CRED","credpay://upi/pay?"],["slice, super.money, other apps","upi://pay?"]];
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function nm(id){var p=S.people.filter(function(x){return x.id===id})[0];return p?p.name:"Someone"}
+function pp(id){return S.people.filter(function(x){return x.id===id})[0]}
+function inr(p){var v=(Math.abs(p)/100).toFixed(2);return"₹"+Number(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}
+
+function balances(){
+  var n={};S.people.forEach(function(p){n[p.id]=0});
+  S.items.forEach(function(it){
+    if(it.t==="e"){
+      var sp=it.split.filter(function(i){return n[i]!==undefined});if(!sp.length||n[it.payer]===undefined)return;
+      if(it.sh){n[it.payer]+=it.amt;sp.forEach(function(i){n[i]-=it.sh[i]||0})}else{
+      var base=Math.floor(it.amt/sp.length),rem=it.amt-base*sp.length;
+      n[it.payer]+=it.amt;
+      sp.forEach(function(i,k){n[i]-=base+(k<rem?1:0)});}
+    }else if(n[it.from]!==undefined&&n[it.to]!==undefined){n[it.from]+=it.amt;n[it.to]-=it.amt}
+  });
+  return n;
+}
+function plan(n){
+  var cr=[],db=[],out=[];
+  Object.keys(n).forEach(function(id){if(n[id]>0)cr.push({id:id,v:n[id]});else if(n[id]<0)db.push({id:id,v:-n[id]})});
+  cr.sort(function(a,b){return b.v-a.v});db.sort(function(a,b){return b.v-a.v});
+  var i=0,j=0;
+  while(i<db.length&&j<cr.length){
+    var m=Math.min(db[i].v,cr[j].v);out.push({from:db[i].id,to:cr[j].id,amt:m});
+    db[i].v-=m;cr[j].v-=m;if(!db[i].v)i++;if(!cr[j].v)j++;
+  }
+  return out;
+}
+function upi(t){
+  var to=pp(t.to);if(!to||!to.upi)return"";
+  return"pa="+encodeURIComponent(to.upi)+"&pn="+encodeURIComponent(to.name)+"&am="+(t.amt/100).toFixed(2)+"&cu=INR&tn="+encodeURIComponent("Money Split payback");
+}
+function summary(tx){
+  if(!tx.length)return"All settled up. Nobody owes anything.";
+  return"Settle-up summary\n"+tx.map(function(t){
+    var to=pp(t.to);return nm(t.from)+" pays "+nm(t.to)+" "+inr(t.amt)+(to&&to.upi?" (UPI: "+to.upi+")":"");
+  }).join("\n");
+}
+
+function render(){
+  $("people").innerHTML=S.people.length?S.people.map(function(p){
+    return'<span class="chip">'+esc(p.name)+(p.upi?' <small>'+esc(p.upi)+'</small>':'')+'<button class="x" data-rp="'+p.id+'" aria-label="Remove '+esc(p.name)+'">×</button></span>';
+  }).join(""):'<span class="empty">Add at least two people to start.</span>';
+  var cur=$("ep").value;
+  $("ep").innerHTML=S.people.map(function(p){return'<option value="'+p.id+'">Paid by '+esc(p.name)+'</option>'}).join("");
+  if(cur)$("ep").value=cur;
+  var chk={};[].forEach.call(document.querySelectorAll("#split input"),function(c){chk[c.value]=c.checked});
+  $("split").innerHTML=S.people.map(function(p){
+    var on=chk[p.id]===undefined?true:chk[p.id];
+    return'<label><input type="checkbox" value="'+p.id+'"'+(on?" checked":"")+'> '+esc(p.name)+' <input class="sa" type="number" inputmode="decimal" min="0" step="0.01" data-id="'+p.id+'" placeholder="₹" aria-label="Amount for '+esc(p.name)+'"></label>';
+  }).join("");
+  var n=balances();
+  var paid={},tot=0,cnt=0;S.items.forEach(function(it){if(it.t==="e"){tot+=it.amt;cnt++;paid[it.payer]=(paid[it.payer]||0)+it.amt}});
+  $("tot").textContent=cnt?"Total spent: "+inr(tot)+" in "+cnt+" bill"+(cnt>1?"s":""):"";
+  $("bal").innerHTML=S.people.length?S.people.map(function(p){
+    var v=n[p.id];
+    return'<div class="li"><span>'+esc(p.name)+'<br><small>paid '+inr(paid[p.id]||0)+' so far</small></span><span class="amt '+(v>0?"get":v<0?"owe":"")+'">'+(v>0?"gets "+inr(v):v<0?"needs to pay "+inr(v):"all clear")+'</span></div>';
+  }).join(""):'<div class="empty">No people yet.</div>';
+  var tx=plan(n);
+  $("settle").innerHTML=tx.length?tx.map(function(t,k){
+    var l=upi(t);
+    return'<div class="slip"><div class="top"><span>'+esc(nm(t.from))+' pays '+esc(nm(t.to))+'</span><span class="big">'+inr(t.amt)+'</span></div>'+
+      (l?'<p class="mute" style="margin:8px 0 4px">Open your payment app:</p><div class="acts">'+APPS.map(function(a){return'<a class="btn" href="'+a[1]+l+'">'+a[0]+'</a>'}).join("")+'</div><div class="acts"><button data-cu="'+t.to+'">Copy UPI ID</button><button data-pay="'+k+'">Done, I paid</button></div>'
+      :'<p class="mute" style="margin:8px 0 4px">Add '+esc(nm(t.to))+'’s UPI ID above to pay from an app.</p><div class="acts"><button data-pay="'+k+'">Done, I paid</button></div>')+'</div>';
+  }).join(""):'<div class="empty">'+(S.items.length?"Everyone is settled up.":"Add a bill to see who pays whom.")+'</div>';
+  $("settle")._tx=tx;
+  var s=summary(tx);
+  $("wa").href="https://wa.me/?text="+encodeURIComponent(s);
+  $("wa").style.display=tx.length?"inline-block":"none";
+  $("note").textContent=tx.length?"App buttons work on your phone. After you pay, tap Done, I paid. If slice or super.money does not open, copy the UPI ID and paste it there.":"";
+  $("hist").innerHTML=S.items.length?S.items.slice().reverse().map(function(it){
+    return it.t==="e"
+      ?'<div class="li"><span>'+esc(it.desc)+'<br><small>'+esc(nm(it.payer))+' paid · '+(it.sh?"custom split":"split "+it.split.length+" way"+(it.split.length>1?"s":""))+'</small></span><span class="amt">'+inr(it.amt)+' <button class="x" data-ri="'+it.id+'" aria-label="Delete expense">×</button></span></div>'
+      :'<div class="li"><span>Paid back<br><small>'+esc(nm(it.from))+' → '+esc(nm(it.to))+'</small></span><span class="amt get">'+inr(it.amt)+' <button class="x" data-ri="'+it.id+'" aria-label="Delete payment">×</button></span></div>';
+  }).join(""):'<div class="empty">Nothing logged yet.</div>';
+}
+
+$("addP").onclick=function(){
+  var n=$("pn").value.trim(),u=$("pu").value.trim();if(!n)return;
+  var ex=S.people.filter(function(p){return p.name.toLowerCase()===n.toLowerCase()})[0];
+  if(ex){if(u)ex.upi=u}else S.people.push({id:uid(),name:n,upi:u});$("pn").value="";$("pu").value="";save();render();
+};
+$("pn").addEventListener("keydown",function(e){if(e.key==="Enter")$("addP").click()});
+$("mode").onchange=function(){$("split").className="who"+(this.value==="ex"?" ex":"")};
+$("addE").onclick=function(){
+  var d=$("ed").value.trim(),a=Math.round(parseFloat($("ea").value)*100),
+  sp=[].map.call(document.querySelectorAll("#split input:checked"),function(c){return c.value});
+  var er=$("err");er.textContent="";
+  if(S.people.length<2){er.textContent="Add at least two people first.";return}
+  if(!d){er.textContent="Say what the expense was for.";return}
+  if(!(a>0)){er.textContent="Enter an amount greater than zero.";return}
+  if(!sp.length){er.textContent="Pick at least one person to split with.";return}
+  var sh=null;
+  if($("mode").value==="ex"){sh={};var tt=0;sp.forEach(function(id){var el=document.querySelector('.sa[data-id="'+id+'"]');var v=Math.round(parseFloat(el&&el.value)*100)||0;sh[id]=v;tt+=v});if(tt!==a){er.textContent="Amounts add up to "+inr(tt)+" but the bill is "+inr(a)+".";return}}
+  S.items.push({id:uid(),t:"e",desc:d,amt:a,payer:$("ep").value,split:sp,sh:sh});
+  $("ed").value="";$("ea").value="";save();render();
+};
+document.addEventListener("click",function(e){
+  var t=e.target;
+  if(t.dataset.rp){var id=t.dataset.rp;
+    if(S.items.some(function(i){return i.t==="e"?(i.payer===id||i.split.indexOf(id)>-1):(i.from===id||i.to===id)})){$("err").textContent="That friend is part of logged expenses. Delete those first.";return}
+    S.people=S.people.filter(function(p){return p.id!==id});save();render()}
+  if(t.dataset.cu){var pe=pp(t.dataset.cu);if(pe&&pe.upi){try{navigator.clipboard.writeText(pe.upi)}catch(x){}t.textContent="Copied"}}
+  if(t.dataset.ri){S.items=S.items.filter(function(i){return i.id!==t.dataset.ri});save();render()}
+  if(t.dataset.pay!==undefined){var x=$("settle")._tx[+t.dataset.pay];
+    S.items.push({id:uid(),t:"p",from:x.from,to:x.to,amt:x.amt});save();render()}
+});
+$("copy").onclick=function(){
+  var s=summary($("settle")._tx||[]),b=$("copy");
+  function ok(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy summary"},1500)}
+  try{navigator.clipboard.writeText(s).then(ok,function(){fb()})}catch(e){fb()}
+  function fb(){var a=document.createElement("textarea");a.value=s;document.body.appendChild(a);a.select();try{document.execCommand("copy");ok()}catch(e){}a.remove()}
+};
+$("reset").onclick=function(){if(S.items.length||S.people.length){if(!confirm("Clear all friends and expenses?"))return}S={people:[],items:[]};save();render()};
+render();
+})();
+</script>
+</body>
+</html>
